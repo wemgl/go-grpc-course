@@ -112,7 +112,6 @@ const (
 )
 
 func main() {
-
 	var opts []grpc.ServerOption
 	if lookupEnv, ok := os.LookupEnv("TLS_ENABLED"); ok {
 		tlsEnabled, err := strconv.ParseBool(lookupEnv)

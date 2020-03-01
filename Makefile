@@ -12,7 +12,6 @@
 # Private files: ca.key, server.key, server.pem, server.crt
 # "Share" files: ca.crt (needed by the client), server.csr (needed by the CA)
 
-
 # Step 1: Generate Certificate Authority + Trust Certificate (ca.crt)
 #openssl genrsa -passout pass:1111 -des3 -out ca.key 4096
 #openssl req -passin pass:1111 -new -x509 -days 3650 -key ca.key -out ca.crt -subj "/CN=${SERVER_CN}"
