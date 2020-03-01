@@ -11,6 +11,8 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -110,9 +112,27 @@ const (
 )
 
 func main() {
-	creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
-	if err != nil {
-		log.Fatalf("failed loading SSL certificates: %v", err)
+
+	var opts []grpc.ServerOption
+	if lookupEnv, ok := os.LookupEnv("TLS_ENABLED"); ok {
+		tlsEnabled, err := strconv.ParseBool(lookupEnv)
+		if err != nil {
+			log.Fatalf("failed to parse TLS_ENABLED environment variable: %v", err)
+		}
+		if tlsEnabled {
+			creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
+			if err != nil {
+				log.Fatalf("failed loading SSL certificates: %v", err)
+			}
+			log.Println("run server with TLS enabled")
+			opts = append(opts, grpc.Creds(creds))
+		} else {
+			log.Println("tls isn't enabled")
+			opts = append(opts, grpc.EmptyServerOption{})
+		}
+	} else {
+		log.Println("couldn't lookup env")
+		opts = append(opts, grpc.EmptyServerOption{})
 	}
 
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
@@ -120,8 +140,7 @@ func main() {
 		log.Fatalf("failed to create TCP listener: %v", err)
 	}
 
-	opts := grpc.Creds(creds)
-	s := grpc.NewServer(opts)
+	s := grpc.NewServer(opts...)
 	greetpb.RegisterGreetServiceServer(s, &server{})
 
 	if err := s.Serve(lis); err != nil {

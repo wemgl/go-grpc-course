@@ -10,19 +10,38 @@ import (
 	"google.golang.org/grpc/status"
 	"io"
 	"log"
+	"os"
+	"strconv"
 	"time"
 )
 
 const certFile = "ssl/ca.crt"
 
 func main() {
-	// Certificate Authority trust certificate
-	creds, err := credentials.NewClientTLSFromFile(certFile, "")
-	if err != nil {
-		log.Fatalf("failed to read CA trust certificate file: %v", err)
+	var opts []grpc.DialOption
+	if lookupEnv, ok := os.LookupEnv("TLS_ENABLED"); ok {
+		tlsEnabled, err := strconv.ParseBool(lookupEnv)
+		if err != nil {
+			log.Fatalf("failed to parse TLS_ENABLED environment variable: %v", err)
+		}
+		if tlsEnabled {
+			// Certificate Authority trust certificate
+			creds, err := credentials.NewClientTLSFromFile(certFile, "")
+			if err != nil {
+				log.Fatalf("failed to read CA trust certificate file: %v", err)
+			}
+			log.Printf("client connected with TLS: %t", tlsEnabled)
+			opts = append(opts, grpc.WithTransportCredentials(creds))
+		} else {
+			log.Println("tls isn't enabled")
+			opts = append(opts, grpc.WithInsecure())
+		}
+	} else {
+		log.Println("couldn't lookup env")
+		opts = append(opts, grpc.WithInsecure())
 	}
-	opts := grpc.WithTransportCredentials(creds)
-	conn, err := grpc.Dial("localhost:50051", opts)
+
+	conn, err := grpc.Dial("localhost:50051", opts...)
 	if err != nil {
 		log.Fatalf("failed to connect to server")
 	}
